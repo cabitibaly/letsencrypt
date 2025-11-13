@@ -1,5 +1,6 @@
 api:
   dashboard: true
+  insecure: true
 
 entryPoints:
   http:
@@ -17,4 +18,4 @@ certificatesResolvers:
       email: powertechsarl22@gmail.com
       storage: acme.json
       httpChallenge:
-        entryPoint: web
+        entryPoint: http
