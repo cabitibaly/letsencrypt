@@ -1,0 +1,20 @@
+api:
+  dashboard: true
+
+entryPoints:
+  http:
+    address: ":80"
+  https:
+    address: ":443"
+
+providers:
+  docker:
+    exposedByDefault: false
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: powertechsarl22@gmail.com
+      storage: acme.json
+      httpChallenge:
+        entryPoint: web

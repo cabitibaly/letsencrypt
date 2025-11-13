@@ -1,50 +1,57 @@
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    ports: 
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.yml:/traefik.yml
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - app-network
+
   frontend:
     container_name: frontend
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - 3000:3000
+    expose:
+      - 3000
     restart: unless-stopped
     networks:
       - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`staging.powertechbf.com`)"
+      - "traefik.http.routers.frontend.entrypoints=http"
+      - "traefik.http.routers.frontend.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.frontend-secure.rule=Host(`staging.powertechbf.com`)"
+      - "traefik.http.routers.frontend-secure.entrypoints=https"
+      - "traefik.http.routers.frontend-secure.tls.certresolver=letsencrypt"    
   
   nginx:
     container_name: nginx    
     image: nginx:stable-alpine3.21-perl
     restart: unless-stopped
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - web-root:/var/www/certbot
-      - ./nginx-conf:/etc/nginx/conf.d
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - dhparam:/etc/ssl/certs
-    depends_on:
-      - frontend
+    expose:
+      - 80
     networks:
       - app-network
-
-  certbot:
-    container_name: certbot
-    image: certbot/certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - web-root:/var/www/certbot
-    depends_on:
-      - nginx
-    command: certonly --webroot --webroot-path=/var/www/certbot --email powertechsarl22@gmail.com --agree-tos --no-eff-email --force-renewal -d staging.powertechbf.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`nginx.powertechbf.com`)"
+      - "traefik.http.routers.nginx.entrypoints=http"
+      - "traefik.http.routers.nginx.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.nginx-secure.rule=Host(`nginx.powertechbf.com`)"
+      - "traefik.http.routers.nginx-secure.entrypoints=https"
+      - "traefik.http.routers.nginx-secure.tls.certresolver=letsencrypt"
 
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  web-root:
-  certbot-etc:
-  certbot-var:
-  dhparam:
